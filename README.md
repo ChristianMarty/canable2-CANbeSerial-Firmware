@@ -1,52 +1,14 @@
-# CANable 2.0 Firmware
+# CANable 2.0 CANbeSerial Firmware
 
-This repository contains sources for the slcan CANable 2.0 firmware. This firmware implements non-standard slcan commands to support CANFD messaging alongside a LAWICEL-style command set.
+This is an alternative firmware for the CANable 2.0 device. It replaces the slcan protocol with the CANbeSerial protocol.
 
-## Supported Commands
+Key benefits of this implementation are:
+* Propper framing algorithm
+* Frames are CRC checked
+* Data is not encoded as strings
+* Support of all standard baud rates for CAN and CAN-FD
 
-- `O` - Open channel 
-- `C` - Close channel 
-- `S0` - Set nominal bitrate to 10k
-- `S1` - Set nominal bitrate to 20k
-- `S2` - Set nominal bitrate to 50k
-- `S3` - Set nominal bitrate to 100k
-- `S4` - Set nominal bitrate to 125k
-- `S5` - Set nominal bitrate to 250k
-- `S6` - Set nominal bitrate to 500k
-- `S7` - Set nominal bitrate to 750k
-- `S8` - Set nominal bitrate to 1M
-- `S9` - Set nominal bitrate to 83.3k
-- `Y2` - Set data bitrate to 2M (CANFD only) (default)
-- `Y5` - Set data bitrate to 5M (CANFD only)
-- `M0` - Set mode to normal mode (default)
-- `M1` - Set mode to silent mode
-- `A0` - Disable automatic retransmission 
-- `A1` - Enable automatic retransmission (default)
-- `tIIILDD...` - Transmit data frame (Standard ID) [ID, length, data]
-- `TIIIIIIIILDD...` - Transmit data frame (Extended ID) [ID, length, data]
-- `RIIIIIIIIL` - Transmit remote frame (Extended ID) [ID, length]
-- `rIIIL` - Transmit remote frame (Standard ID) [ID, length]
-- `dIIILDD...` - Transmit CAN FD standard ID (no BRS) [ID, length]
-- `DIIIIIIIILDD...` - Transmit CAN FD extended ID (no BRS) [ID, length]
-- `bIIILDD...` - Transmit CAN FD BRS standard ID [ID, length]
-- `BIIIIIIIILDD...` - Transmit CAN FD extended ID [ID, length]
 
-- `V` - Returns firmware version and remote path as a string
-- `E` - Returns error register
-
-Note: CANFD message lengths are as follows (expressed in hexadecimal):
-- `0-8`: Same as standard CAN
-- `9`: Length = 12
-- `A`: Length = 16
-- `B`: Length = 20
-- `C`: Length = 24
-- `D`: Length = 32
-- `E`: Length = 48
-- `F`: Length = 64
-
-Note: Channel configuration commands must be sent before opening the channel. The channel must be opened before transmitting frames.
-
-This firmware currently does not provide any ACK/NACK feedback for serial commands.
 
 ## Building
 
