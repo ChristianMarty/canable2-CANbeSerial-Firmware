@@ -3,6 +3,8 @@
 
 #include "usbd_cdc.h"
 
+// callback to main
+void serial_data(const uint8_t *data, uint8_t size);
 
 // This takes 4k of RAM.
 #define NUM_RX_BUFS 8

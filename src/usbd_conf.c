@@ -168,7 +168,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
   if ( hpcd->Init.speed != PCD_SPEED_FULL)
   {
     while(1);
-#warning "EMZ Catch error here"
+//#warning "EMZ Catch error here"
   }
     /* Set Speed. */
   USBD_LL_SetSpeed((USBD_HandleTypeDef*)hpcd->pData, speed);
@@ -708,7 +708,7 @@ void USBD_static_free(void *p)
 static void SystemClockConfig_Resume(void)
 {
   //EMZSystemClock_Config();
-#warning "EMZ systemclock resume not supported"
+//#warning "EMZ systemclock resume not supported"
 }
 /* USER CODE END 5 */
 

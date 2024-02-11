@@ -2,13 +2,13 @@
 #include "usbd_desc.h"
 #include "usbd_conf.h"
 
-#define USBD_VID			0x16d0
-#define USBD_LANGID_STRING		1033
-#define USBD_MANUFACTURER_STRING	"Openlight Labs"
-#define USBD_PID			0x117e
-#define USBD_PRODUCT_STRING		"CANable2" " " GIT_VERSION " " GIT_REMOTE
-#define USBD_CONFIGURATION_STRING    "CDC Config"
-#define USBD_INTERFACE_STRING	"CDC Interface"
+#define USBD_VID                    0x16d0
+#define USBD_LANGID_STRING		    1033
+#define USBD_MANUFACTURER_STRING    "Openlight Labs"
+#define USBD_PID			        0x117e
+#define USBD_PRODUCT_STRING		    "CANable2 CANbeSerial Firmware"
+#define USBD_CONFIGURATION_STRING   "CDC Config"
+#define USBD_INTERFACE_STRING	    "CDC Interface"
 
 
 // Private methods

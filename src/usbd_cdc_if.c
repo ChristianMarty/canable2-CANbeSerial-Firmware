@@ -1,5 +1,4 @@
 #include "usbd_cdc_if.h"
-#include "slcan.h"
 #include "system.h"
 #include "error.h"
 
@@ -7,8 +6,6 @@
 static usbrx_buf_t rxbuf = {0};
 static usbtx_buf_t txbuf = {0};
 static uint8_t tx_linbuf[TX_LINBUF_SIZE] = {0};
-static uint8_t slcan_str[SLCAN_MTU];
-static uint8_t slcan_str_index = 0;
 
 
 // Externs
@@ -207,36 +204,7 @@ void cdc_process(void)
     system_irq_disable();
 	if(rxbuf.tail != rxbuf.head)
 	{
-		//  Process one whole buffer
-		for (uint32_t i = 0; i < rxbuf.msglen[rxbuf.tail]; i++)
-		{
-		   if (rxbuf.buf[rxbuf.tail][i] == '\r')
-		   {
-			   //int8_t result =
-			   slcan_parse_str(slcan_str, slcan_str_index);
-
-			   // Success
-			   //if(result == 0)
-			   //    CDC_Transmit_FS("\n", 1);
-			   // Failure
-			   //else
-			   //    CDC_Transmit_FS("\a", 1);
-
-			   slcan_str_index = 0;
-		   }
-		   else
-		   {
-			   // Check for overflow of buffer
-			   if(slcan_str_index >= SLCAN_MTU)
-			   {
-				   // TODO: Return here and discard this CDC buffer?
-				   slcan_str_index = 0;
-			   }
-
-			   slcan_str[slcan_str_index++] = rxbuf.buf[rxbuf.tail][i];
-		   }
-		}
-
+        serial_data(&rxbuf.buf[rxbuf.tail][0],rxbuf.msglen[rxbuf.tail]);
 		// Move on to next buffer
 		rxbuf.tail = (rxbuf.tail + 1) % NUM_RX_BUFS;
 	}

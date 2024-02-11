@@ -31,6 +31,8 @@ void led_init()
     GPIO_InitStruct.Alternate = 0;
     HAL_GPIO_Init(LED_BLUE_Port, &GPIO_InitStruct);
 
+    HAL_GPIO_WritePin(LED_BLUE, 0); // led off
+
     GPIO_InitStruct.Pin = LED_GREEN_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -38,8 +40,7 @@ void led_init()
     GPIO_InitStruct.Alternate = 0;
     HAL_GPIO_Init(LED_GREEN_Port, &GPIO_InitStruct);
 
-
-    HAL_GPIO_WritePin(LED_GREEN, 1); 
+    HAL_GPIO_WritePin(LED_GREEN, 0); // led off
 }
 
 
@@ -63,39 +64,21 @@ void led_green_off(void)
 	HAL_GPIO_WritePin(LED_GREEN, 0);
 }
 
-
-// Blink blue LED (blocking)
-void led_blue_blink(uint8_t numblinks)
-{
-	uint8_t i;
-	for(i=0; i<numblinks; i++)
-	{
-		HAL_GPIO_WritePin(LED_BLUE, 1);
-		HAL_Delay(100);
-		HAL_GPIO_WritePin(LED_BLUE, 0);
-		HAL_Delay(100);
-	}
-}
-
-
 // Attempt to turn on status LED
 void led_blue_on(void)
 {
-	// Make sure the LED has been off for at least LED_DURATION before turning on again
-	// This prevents a solid status LED on a busy canbus
-	if(led_blue_laston == 0 && HAL_GetTick() - led_blue_lastoff > LED_DURATION)
-	{
-		HAL_GPIO_WritePin(LED_BLUE, 1);
-		led_blue_laston = HAL_GetTick();
-	}
+    HAL_GPIO_WritePin(LED_BLUE, 0);
 }
-
+void led_blue_off(void)
+{
+    HAL_GPIO_WritePin(LED_BLUE, 1);
+}
 
 // Process time-based LED events
 void led_process(void)
 {
 
-    // If error occurred in the last 2 seconds, override LEDs with blink sequence
+ /*   // If error occurred in the last 2 seconds, override LEDs with blink sequence
     if(error_last_timestamp() > 0 && (HAL_GetTick() - error_last_timestamp() < 2000))
     {
     	if(HAL_GetTick() - last_errflash > 150)
@@ -133,6 +116,6 @@ void led_process(void)
 			led_green_laston = 0;
 			led_green_lastoff = HAL_GetTick();
 		}
-    }
+    }*/
 }
 

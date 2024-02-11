@@ -1,39 +1,13 @@
 #ifndef _CAN_H
 #define _CAN_H
 
-
-// Classic CAN / CANFD nominal bitrates
-enum can_bitrate {
-    CAN_BITRATE_10K = 0,
-    CAN_BITRATE_20K,
-    CAN_BITRATE_50K,
-    CAN_BITRATE_100K,
-    CAN_BITRATE_125K,
-    CAN_BITRATE_250K,
-    CAN_BITRATE_500K,
-    CAN_BITRATE_750K,
-    CAN_BITRATE_1000K,
-	CAN_BITRATE_83_3K,
-
-	CAN_BITRATE_INVALID,
-};
-
-
-// CANFD bitrates
-enum can_data_bitrate {
-    CAN_DATA_BITRATE_2M = 2,
-    CAN_DATA_BITRATE_5M = 5,
-
-	CAN_DATA_BITRATE_INVALID,
-};
-
+#include "CANbeSerial.h"
 
 // Bus state
 enum can_bus_state {
     OFF_BUS,
     ON_BUS
 };
-
 
 // CAN transmit buffering
 #define TXQUEUE_LEN 64 // Number of buffers allocated
@@ -55,8 +29,8 @@ typedef struct cantxbuf_
 void can_init(void);
 void can_enable(void);
 void can_disable(void);
-void can_set_bitrate(enum can_bitrate bitrate);
-void can_set_data_bitrate(enum can_data_bitrate bitrate);
+void can_set_bitrate(cbs_baudrate_t baudrate);
+void can_set_data_bitrate(cbs_baudrate_t baudrate);
 void can_set_silent(uint8_t silent);
 void can_set_autoretransmit(uint8_t autoretransmit);
 uint32_t can_tx(FDCAN_TxHeaderTypeDef *tx_msg_header, uint8_t *tx_msg_data);

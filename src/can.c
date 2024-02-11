@@ -1,9 +1,7 @@
 //
 // can: initializes and provides methods to interact with the CAN peripheral
 //
-
 #include "stm32g4xx_hal.h"
-#include "slcan.h"
 #include "usbd_cdc_if.h"
 #include "can.h"
 #include "led.h"
@@ -71,8 +69,8 @@ void can_init(void)
 
 
     // default to 125 kbit/s
-    can_set_bitrate(CAN_BITRATE_125K);
-    can_set_data_bitrate(CAN_DATA_BITRATE_2M);
+    can_set_bitrate(cbs_baudrate_500k);
+    can_set_data_bitrate(cbs_baudrate_500k);
     can_handle.Instance = FDCAN1;
     bus_state = OFF_BUS;
 }
@@ -126,7 +124,6 @@ void can_enable(void)
 
         HAL_FDCAN_Start(&can_handle);
         bus_state = ON_BUS;
-
         led_blue_on();
     }
 }
@@ -140,81 +137,44 @@ void can_disable(void)
         HAL_FDCAN_Stop(&can_handle);
 
         bus_state = OFF_BUS;
-
-        led_green_on();
+        led_blue_off();
     }
 }
 
 
-void can_set_data_bitrate(enum can_data_bitrate bitrate)
+void can_set_data_bitrate(cbs_baudrate_t baudrate)
 {
-    if (bus_state == ON_BUS)
-    {
-        // cannot set bitrate while on bus
-        return;
+    switch (baudrate){
+        case cbs_baudrate_10k: data_prescaler = 1000; break;
+        case cbs_baudrate_20k: data_prescaler = 500; break;
+        case cbs_baudrate_50k: data_prescaler = 200; break;
+        case cbs_baudrate_100k: data_prescaler = 100; break;
+        case cbs_baudrate_125k: data_prescaler = 80; break;
+        case cbs_baudrate_250k: data_prescaler = 40; break;
+        case cbs_baudrate_500k: data_prescaler = 20; break;
+        case cbs_baudrate_1M: data_prescaler = 10; break;
+        case cbs_baudrate_2M: data_prescaler = 5; break;
+        case cbs_baudrate_5M: data_prescaler = 2; break;
+        case cbs_baudrate_10M: data_prescaler = 1; break;
     }
-
-    switch (bitrate)
-    {
-        case CAN_DATA_BITRATE_2M:
-        	data_prescaler = 5;
-            break;
-
-        case CAN_DATA_BITRATE_5M:
-        default:
-        	data_prescaler = 2;
-            break;
-    }
-
-    led_green_on();
-    
 }
 
 // Set the bitrate of the CAN peripheral
-void can_set_bitrate(enum can_bitrate bitrate)
+void can_set_bitrate(cbs_baudrate_t baudrate)
 {
-    if (bus_state == ON_BUS)
-    {
-        // cannot set bitrate while on bus
-        return;
+    switch (baudrate){
+        case cbs_baudrate_10k: prescaler = 1000; break;
+        case cbs_baudrate_20k: prescaler = 500; break;
+        case cbs_baudrate_50k: prescaler = 200; break;
+        case cbs_baudrate_100k: prescaler = 100; break;
+        case cbs_baudrate_125k: prescaler = 80; break;
+        case cbs_baudrate_250k: prescaler = 40; break;
+        case cbs_baudrate_500k: prescaler = 20; break;
+        case cbs_baudrate_1M: prescaler = 10; break;
+        case cbs_baudrate_2M: prescaler = 5; break;
+        case cbs_baudrate_5M: prescaler = 2; break;
+        case cbs_baudrate_10M: prescaler = 1; break;
     }
-
-    switch (bitrate)
-    {
-        case CAN_BITRATE_10K:
-        	prescaler = 1000;
-            break;
-        case CAN_BITRATE_20K:
-        	prescaler = 500;
-            break;
-        case CAN_BITRATE_50K:
-        	prescaler = 200;
-            break;
-        case CAN_BITRATE_83_3K:
-        	prescaler = 120;
-        	break;
-        case CAN_BITRATE_100K:
-            prescaler = 100;
-            break;
-        case CAN_BITRATE_125K:
-            prescaler = 80;
-            break;
-        case CAN_BITRATE_250K:
-            prescaler = 40;
-            break;
-        case CAN_BITRATE_500K:
-            prescaler = 20;
-            break;
-        case CAN_BITRATE_750K:
-            prescaler = 7;// THIS IS VERY INACCURATE!!! FIXME
-            break;
-        case CAN_BITRATE_1000K:
-        default:
-            prescaler = 10;
-            break;
-    }
-
-    led_green_on();
 }
 
 
@@ -232,8 +192,6 @@ void can_set_silent(uint8_t silent)
     } else {
     	can_handle.Init.Mode = FDCAN_MODE_NORMAL;
     }
-
-    led_green_on();
 }
 
 
@@ -251,11 +209,50 @@ void can_set_autoretransmit(uint8_t autoretransmit)
     } else {
     	can_autoretransmit = DISABLE;
     }
-
-    led_green_on();
 }
 
 
+// Convert a FDCAN_data_length_code to number of bytes in a message
+int8_t hal_dlc_code_to_bytes(uint32_t hal_dlc_code)
+{
+    switch(hal_dlc_code)
+    {
+        case FDCAN_DLC_BYTES_0:
+            return 0;
+        case FDCAN_DLC_BYTES_1:
+            return 1;
+        case FDCAN_DLC_BYTES_2:
+            return 2;
+        case FDCAN_DLC_BYTES_3:
+            return 3;
+        case FDCAN_DLC_BYTES_4:
+            return 4;
+        case FDCAN_DLC_BYTES_5:
+            return 5;
+        case FDCAN_DLC_BYTES_6:
+            return 6;
+        case FDCAN_DLC_BYTES_7:
+            return 7;
+        case FDCAN_DLC_BYTES_8:
+            return 8;
+        case FDCAN_DLC_BYTES_12:
+            return 12;
+        case FDCAN_DLC_BYTES_16:
+            return 16;
+        case FDCAN_DLC_BYTES_20:
+            return 20;
+        case FDCAN_DLC_BYTES_24:
+            return 24;
+        case FDCAN_DLC_BYTES_32:
+            return 32;
+        case FDCAN_DLC_BYTES_48:
+            return 48;
+        case FDCAN_DLC_BYTES_64:
+            return 64;
+        default:
+            return -1;
+    }
+}
 
 // Send a message on the CAN bus. Called from USB ISR.
 uint32_t can_tx(FDCAN_TxHeaderTypeDef *tx_msg_header, uint8_t* tx_msg_data)
@@ -320,7 +317,7 @@ uint32_t can_rx(FDCAN_RxHeaderTypeDef *rx_msg_header, uint8_t* rx_msg_data)
     uint32_t status;
     status = HAL_FDCAN_GetRxMessage(&can_handle, FDCAN_RX_FIFO0, rx_msg_header, rx_msg_data);
 
-	led_blue_on();
+
     return status;
 }
 
@@ -328,11 +325,7 @@ uint32_t can_rx(FDCAN_RxHeaderTypeDef *rx_msg_header, uint8_t* rx_msg_data)
 // Check if a CAN message has been received and is waiting in the FIFO
 uint8_t is_can_msg_pending(uint8_t fifo)
 {
-    if (bus_state == OFF_BUS)
-    {
-        return 0;
-    }
-
+    if (bus_state == OFF_BUS) return 0;
     return(HAL_FDCAN_GetRxFifoFillLevel(&can_handle, FDCAN_RX_FIFO0) > 0);
 }
 
