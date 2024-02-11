@@ -6,6 +6,7 @@
 #include "can.h"
 #include "led.h"
 #include "error.h"
+#include "CANbeSerial.h"
 #include "system.h"
 
 
@@ -29,7 +30,6 @@ void can_init(void)
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
-
     GPIO_InitStruct.Pin = GPIO_PIN_0;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
@@ -37,14 +37,12 @@ void can_init(void)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 0); // CAN Standby - turn standby off (hw pull hi)
 
-
     GPIO_InitStruct.Pin = GPIO_PIN_13;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 1); // CAN IO power
-
 
     //PB8     ------> CAN_RX
     //PB9     ------> CAN_TX
@@ -54,7 +52,6 @@ void can_init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
 
     // Initialize default CAN filter configuration
     /*filter.FilterIdHigh = 0;
@@ -67,10 +64,6 @@ void can_init(void)
     filter.FilterScale = CAN_FILTERSCALE_32BIT;
     filter.FilterActivation = ENABLE;*/
 
-
-    // default to 125 kbit/s
-    can_set_bitrate(cbs_baudrate_500k);
-    can_set_data_bitrate(cbs_baudrate_500k);
     can_handle.Instance = FDCAN1;
     bus_state = OFF_BUS;
 }
@@ -84,7 +77,6 @@ void can_enable(void)
         can_handle.Init.ClockDivider = FDCAN_CLOCK_DIV1; // 144Mhz
 //        can_handle.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
         can_handle.Init.FrameFormat = FDCAN_FRAME_FD_BRS;
-
 
     	//can_handle.Init.Prescaler = prescaler;
     	can_handle.Init.Mode = FDCAN_MODE_NORMAL;
@@ -116,7 +108,6 @@ void can_enable(void)
         can_handle.Init.StdFiltersNbr = 0;
         can_handle.Init.ExtFiltersNbr = 0;
         can_handle.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-
         
         HAL_FDCAN_Init(&can_handle);
 
@@ -124,6 +115,7 @@ void can_enable(void)
 
         HAL_FDCAN_Start(&can_handle);
         bus_state = ON_BUS;
+
         led_blue_on();
     }
 }
@@ -212,48 +204,6 @@ void can_set_autoretransmit(uint8_t autoretransmit)
 }
 
 
-// Convert a FDCAN_data_length_code to number of bytes in a message
-int8_t hal_dlc_code_to_bytes(uint32_t hal_dlc_code)
-{
-    switch(hal_dlc_code)
-    {
-        case FDCAN_DLC_BYTES_0:
-            return 0;
-        case FDCAN_DLC_BYTES_1:
-            return 1;
-        case FDCAN_DLC_BYTES_2:
-            return 2;
-        case FDCAN_DLC_BYTES_3:
-            return 3;
-        case FDCAN_DLC_BYTES_4:
-            return 4;
-        case FDCAN_DLC_BYTES_5:
-            return 5;
-        case FDCAN_DLC_BYTES_6:
-            return 6;
-        case FDCAN_DLC_BYTES_7:
-            return 7;
-        case FDCAN_DLC_BYTES_8:
-            return 8;
-        case FDCAN_DLC_BYTES_12:
-            return 12;
-        case FDCAN_DLC_BYTES_16:
-            return 16;
-        case FDCAN_DLC_BYTES_20:
-            return 20;
-        case FDCAN_DLC_BYTES_24:
-            return 24;
-        case FDCAN_DLC_BYTES_32:
-            return 32;
-        case FDCAN_DLC_BYTES_48:
-            return 48;
-        case FDCAN_DLC_BYTES_64:
-            return 64;
-        default:
-            return -1;
-    }
-}
-
 // Send a message on the CAN bus. Called from USB ISR.
 uint32_t can_tx(FDCAN_TxHeaderTypeDef *tx_msg_header, uint8_t* tx_msg_data)
 {
@@ -266,18 +216,16 @@ uint32_t can_tx(FDCAN_TxHeaderTypeDef *tx_msg_header, uint8_t* tx_msg_data)
 	}
 
 	// Convert length to bytes
-	uint32_t len = hal_dlc_code_to_bytes(tx_msg_header->DataLength);
+	uint8_t len = cbs_dlcToLength(tx_msg_header->DataLength>>16);
 
 	// Don't overrun buffer element max length
-	if(len > TXQUEUE_DATALEN)
-		return HAL_ERROR;
+	if(len > TXQUEUE_DATALEN) return HAL_ERROR;
 
 	// Save the header to the circular buffer
 	txqueue.header[txqueue.head] = *tx_msg_header;
 
 	// Copy the data to the circular buffer
-	for(uint8_t i=0; i<len; i++)
-	{
+	for(uint8_t i=0; i<len; i++){
 		txqueue.data[txqueue.head][i] = tx_msg_data[i];
 	}
 
@@ -293,10 +241,10 @@ void can_process(void)
 {
 	while((txqueue.tail != txqueue.head) && (HAL_FDCAN_GetTxFifoFreeLevel(&can_handle) > 0))
 	{
-		uint32_t status;
+        led_green_on();
 
 		// Transmit can frame
-		status = HAL_FDCAN_AddMessageToTxFifoQ(&can_handle, &txqueue.header[txqueue.tail], txqueue.data[txqueue.tail]);
+        uint32_t status = HAL_FDCAN_AddMessageToTxFifoQ(&can_handle, &txqueue.header[txqueue.tail], txqueue.data[txqueue.tail]);
 		txqueue.tail = (txqueue.tail + 1) % TXQUEUE_LEN;
 
 		// This drops the packet if it fails (no retry). Failure is unlikely
@@ -305,8 +253,6 @@ void can_process(void)
 		{
 			error_assert(ERR_CAN_TXFAIL);
 		}
-
-		led_green_on();
 	}
 }
 
@@ -314,11 +260,7 @@ void can_process(void)
 // Receive message from the CAN bus (blocking)
 uint32_t can_rx(FDCAN_RxHeaderTypeDef *rx_msg_header, uint8_t* rx_msg_data)
 {
-    uint32_t status;
-    status = HAL_FDCAN_GetRxMessage(&can_handle, FDCAN_RX_FIFO0, rx_msg_header, rx_msg_data);
-
-
-    return status;
+    return HAL_FDCAN_GetRxMessage(&can_handle, FDCAN_RX_FIFO0, rx_msg_header, rx_msg_data);
 }
 
 

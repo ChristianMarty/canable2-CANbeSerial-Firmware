@@ -23,24 +23,25 @@ void led_init()
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
-    GPIO_InitTypeDef GPIO_InitStruct;
-    GPIO_InitStruct.Pin = LED_BLUE_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = 0;
-    HAL_GPIO_Init(LED_BLUE_Port, &GPIO_InitStruct);
+    GPIO_InitTypeDef blueLed_InitStruct;
+    blueLed_InitStruct.Pin = LED_BLUE_Pin;
+    blueLed_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    blueLed_InitStruct.Pull = GPIO_PULLUP;
+    blueLed_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    blueLed_InitStruct.Alternate = 0;
+    HAL_GPIO_Init(LED_BLUE_Port, &blueLed_InitStruct);
 
-    HAL_GPIO_WritePin(LED_BLUE, 0); // led off
+    led_blue_off();
 
-    GPIO_InitStruct.Pin = LED_GREEN_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = 0;
-    HAL_GPIO_Init(LED_GREEN_Port, &GPIO_InitStruct);
+    GPIO_InitTypeDef greenLed_InitStruct;
+    greenLed_InitStruct.Pin = LED_GREEN_Pin;
+    greenLed_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    greenLed_InitStruct.Pull = GPIO_PULLUP;
+    greenLed_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    greenLed_InitStruct.Alternate = 0;
+    HAL_GPIO_Init(LED_GREEN_Port, &greenLed_InitStruct);
 
-    HAL_GPIO_WritePin(LED_GREEN, 0); // led off
+    led_green_off();
 }
 
 
@@ -51,7 +52,6 @@ void led_green_on(void)
 	// This prevents a solid status LED on a busy canbus
 	if(led_green_laston == 0 && HAL_GetTick() - led_green_lastoff > LED_DURATION)
 	{
-        // Invert LED
 		HAL_GPIO_WritePin(LED_GREEN, 0);
 		led_green_laston = HAL_GetTick();
 	}
@@ -61,7 +61,7 @@ void led_green_on(void)
 // Turn green LED on
 void led_green_off(void)
 {
-	HAL_GPIO_WritePin(LED_GREEN, 0);
+	HAL_GPIO_WritePin(LED_GREEN, 1);
 }
 
 // Attempt to turn on status LED
@@ -69,6 +69,7 @@ void led_blue_on(void)
 {
     HAL_GPIO_WritePin(LED_BLUE, 0);
 }
+
 void led_blue_off(void)
 {
     HAL_GPIO_WritePin(LED_BLUE, 1);
@@ -108,14 +109,15 @@ void led_process(void)
 			led_blue_lastoff = HAL_GetTick();
 		}
 
-		// If LED has been on for long enough, turn it off
-		if(led_green_laston > 0 && HAL_GetTick() - led_green_laston > LED_DURATION)
-		{
-			// Invert LED
-			HAL_GPIO_WritePin(LED_GREEN, 1);
-			led_green_laston = 0;
-			led_green_lastoff = HAL_GetTick();
-		}
+
     }*/
+
+    // If LED has been on for long enough, turn it off
+    if(led_green_laston > 0 && HAL_GetTick() - led_green_laston > LED_DURATION)
+    {
+        led_green_off();
+        led_green_laston = 0;
+        led_green_lastoff = HAL_GetTick();
+    }
 }
 

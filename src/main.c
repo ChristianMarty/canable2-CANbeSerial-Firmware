@@ -24,7 +24,8 @@ void cds_handleConfigurationChange(cbs_t *cbs)
     can_set_autoretransmit(cbs->configuration.bus.bits.automaticRetransmission);
     can_set_bitrate(cbs->configuration.baudrate);
     can_set_data_bitrate(cbs->configuration.fdBaudrate);
-    can_enable();
+
+    if(cbs->configuration.bus.bits.enabled) can_enable();
 }
 
 void cbs_handleDataFrame(cbs_t *cbs, cbs_data_t *data)
@@ -41,21 +42,25 @@ void cbs_handleDataFrame(cbs_t *cbs, cbs_data_t *data)
         .MessageMarker = 0, // ?
     };
 
-    if(data->flags.bits.rtr) frame_header.TxFrameType = FDCAN_DATA_FRAME;
+    if(data->flags.bits.rtr) frame_header.TxFrameType = FDCAN_REMOTE_FRAME;
     else frame_header.TxFrameType = FDCAN_DATA_FRAME;
 
-    if(data->flags.bits.fd) frame_header.FDFormat = FDCAN_CLASSIC_CAN;
-    else frame_header.FDFormat = FDCAN_FD_CAN;
+    if(data->flags.bits.fd) frame_header.FDFormat = FDCAN_FD_CAN;
+    else frame_header.FDFormat = FDCAN_CLASSIC_CAN;
 
-    if(data->flags.bits.extended) frame_header.IdType = FDCAN_STANDARD_ID;
-    else frame_header.IdType = FDCAN_EXTENDED_ID;
+    if(data->flags.bits.extended) frame_header.IdType = FDCAN_EXTENDED_ID;
+    else frame_header.IdType = FDCAN_STANDARD_ID;
 
     if(cbs->configuration.baudrate == cbs->configuration.fdBaudrate)frame_header.BitRateSwitch = FDCAN_BRS_OFF;
     else frame_header.BitRateSwitch = FDCAN_BRS_ON;
 
-    frame_header.DataLength = data->flags.bits.dlc;
+    frame_header.Identifier = data->identifier;
+    frame_header.DataLength = ((uint32_t)data->flags.bits.dlc) << 16; // ST HAL requires this shift
 
-    can_tx(&frame_header, &data->data[0]);
+    if(can_tx(&frame_header, &data->data[0]) != HAL_OK)
+    {
+        cbs_sendError(cbs,cbs_error_can_tx);
+    }
 }
 
 int main(void)
@@ -67,9 +72,6 @@ int main(void)
     usb_init();
 
     cbs_init(&cbs);
-
-    // Power-on blink sequence
-   // led_blue_blink(2);
 
     while(1)
     {
@@ -87,7 +89,7 @@ int main(void)
             FDCAN_RxHeaderTypeDef rx_msg_header;
 			if (can_rx(&rx_msg_header, &data.data[0]) == HAL_OK) {
                 data.identifier = rx_msg_header.Identifier;
-                data.flags.bits.dlc = rx_msg_header.DataLength;
+                data.flags.bits.dlc = (rx_msg_header.DataLength >> 16) & 0x0F;  // ST HAL requires this shift
                 data.flags.bits.fd = rx_msg_header.FDFormat;
                 data.flags.bits.extended = rx_msg_header.IdType;
                 cbs_sendData(&cbs, &data);

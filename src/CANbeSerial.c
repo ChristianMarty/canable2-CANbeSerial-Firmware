@@ -3,20 +3,25 @@
 
 #define ERROR_FRAME_SIZE 7
 
+// internal function
+void _cbs_encode(cbs_t *cbs, uint8_t *data, uint8_t dataLength);
+void _cbs_send(cbs_t *cbs, uint8_t *data, uint8_t dataLength);
+void _cbs_handleFrame(cbs_t *cbs, uint8_t *data, uint8_t dataLength);
+void _cbs_handleDataFrame(cbs_t *cbs, const uint8_t *data, uint8_t dataLength);
+void _cbs_sendProtocolVersion(cbs_t *cbs);
+void _cbs_sendConfigurationState(cbs_t *cbs);
+void _cbs_setConfigurationState(cbs_t *cbs, const uint8_t *data, uint8_t dataLength);
+void _cbs_sendDeviceInformation(cbs_t *cbs);
+
 void cbs_init(cbs_t *cbs)
 {
     cobs_decodeStreamStart(&cbs->cobsDecoder);
     cbs->txIndex = 0;
 }
 
-void cbs_handler(cbs_t *cbs)
-{
-
-}
-
 void cbs_sendData(cbs_t *cbs, cbs_data_t *data)
 {
-    uint8_t length = _cbs_dlcToLength(data->flags.bits.dlc);
+    uint8_t length = cbs_dlcToLength(data->flags.bits.dlc);
     uint8_t txData[72] = {
         cbs_data,
         data->identifier >> 24,
@@ -70,7 +75,7 @@ void _cbs_handleFrame(cbs_t *cbs, uint8_t *data, uint8_t dataLength)
 void _cbs_send(cbs_t *cbs, uint8_t *data, uint8_t dataLength)
 {
     if(cbs->txIndex+dataLength+3> TX_BUFFER_SIZE-ERROR_FRAME_SIZE){ // always reserve space for one error frame
-        cbs_sendError(cbs, cbs_errer_txBufferFull);
+        cbs_sendError(cbs, cbs_error_txBufferFull);
         return;
     }
     _cbs_encode(cbs, data, dataLength);
@@ -96,19 +101,30 @@ void _cbs_encode(cbs_t *cbs, uint8_t *data, uint8_t dataLength)
 
 void _cbs_handleDataFrame(cbs_t *cbs, const uint8_t *data, uint8_t dataLength)
 {
-    uint32_t identifier;
-    identifier  = data[0]<<24;
-    identifier |= data[1]<<16;
-    identifier |= data[2]<<8;
-    identifier |= data[3];
+    if(dataLength < 5){ // minimum frame size is 4byte for identifier and 1 flags byte -> 5 bytes
+        cbs_sendError(cbs, cbs_error_txFrameMalformatted);
+        return;
+    }
 
     cbs_data_t canData;
-    canData.identifier = identifier;
     canData.flags.byte = data[4];
 
-    uint8_t length = _cbs_dlcToLength(canData.flags.bits.dlc);
+    uint8_t length = cbs_dlcToLength(canData.flags.bits.dlc);
+    if(dataLength != length+5){
+        cbs_sendError(cbs, cbs_error_txFrameDlcLengthMismatch);
+        return;
+    }
+
+    uint32_t identifier;
+    identifier  = ((uint32_t)data[0])<<24;
+    identifier |= ((uint32_t)data[1])<<16;
+    identifier |= ((uint32_t)data[2])<<8;
+    identifier |= ((uint32_t)data[3]);
+
+    canData.identifier = identifier;
+
     for(uint8_t i = 0; i<length; i++) {
-        canData.data[i] = data[i+4];
+        canData.data[i] = data[i+5];
     }
 
     cbs_handleDataFrame(cbs, &canData);
@@ -130,9 +146,10 @@ void _cbs_sendConfigurationState(cbs_t *cbs)
         0,0}; // Last two bytes are reserved for CRC
     _cbs_send(cbs,&txData[0], sizeof(txData));
 }
+
 void _cbs_setConfigurationState(cbs_t *cbs, const uint8_t *data, uint8_t dataLength)
 {
-    if(dataLength != 3){
+    if(dataLength != sizeof(cbs_configuration_t)){
         cbs_sendError(cbs, cbs_error_configurationStateCommand_size);
         return;
     }
@@ -151,7 +168,7 @@ void _cbs_sendDeviceInformation(cbs_t *cbs)
     _cbs_send(cbs,&txData[0], sizeof(txData));
 }
 
-int8_t _cbs_dlcToLength(uint8_t dlc)
+int8_t cbs_dlcToLength(uint8_t dlc)
 {
     static int8_t dlcToLength[] = {0,1,2,3,4,5,6,7,8,12,16,20,24,32,48,64};
     if(dlc>=sizeof(dlcToLength)) return -1;
