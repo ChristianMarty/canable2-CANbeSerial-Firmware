@@ -1,8 +1,8 @@
 # CANable 2.0 CANbeSerial Firmware
 
-This is an alternative firmware for the CANable 2.0 device. It replaces the slcan protocol with the CANbeSerial protocol.
+This is an alternative firmware for the CANable 2.0 (especially Makerbaser CANable V2.0 Pro) device. It replaces the slcan protocol with the CANbeSerial protocol.
 
-For more information about the CANbeSerial protocol go the [CANbeSerial GitHub Page](https://github.com/ChristianMarty/CANbeSerial) or the [CANbeSerial page on my website](https://www.christian-marty.ch/electricthings/canbeserial.html) .
+For more information about the CANbeSerial protocol go the [CANbeSerial GitHub Page](https://github.com/ChristianMarty/CANbeSerial) or the [CANbeSerial page on my website](https://www.christian-marty.ch/electricthings/canbeserial.html).
 
 Key benefits of this implementation are:
 * Proper framing algorithm
