@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "stdint.h"
+#include "stdbool.h"
 #include "cobs_u8.h"
 
 #define CBS_DEVICE_INFORMATION " christian-marty.ch/electricthings/CANbeSerial\x00\x00"
@@ -71,9 +72,11 @@ typedef struct {
 } cbs_t;
 
 typedef enum {
+    cbs_error_noError,
     cbs_error_crc,
+    cbs_error_notEnabled,
     cbs_error_txBufferFull,
-    cbs_error_txFrameMalformatted,
+    cbs_error_txFrameMalFormatted,
     cbs_error_txFrameDlcLengthMismatch,
     cbs_error_unknownPayloadId,
     cbs_error_unsupportedPayloadId,
@@ -87,16 +90,17 @@ typedef enum {
 typedef enum {
     cbs_data = 0x00,
     cbs_error = 0x01,
+    cbs_transmitAcknowledgment = 0x02,
 
-    cbs_protocolVersion = 0x02,
-    cbs_protocolVersionRequest = 0x82,
+    cbs_protocolVersion = 0x08,
+    cbs_protocolVersionRequest = 0x88,
 
-    cbs_configurationState = 0x03,
-    cbs_configurationStateRequest = 0x83,
-    cbs_configurationStateCommand = 0xC3,
+    cbs_configurationState = 0x09,
+    cbs_configurationStateRequest = 0x89,
+    cbs_configurationStateCommand = 0xC9,
 
-    cbs_deviceInformation = 0x04,
-    cbs_deviceInformationRequest = 0x84
+    cbs_deviceInformation = 0x0A,
+    cbs_deviceInformationRequest = 0x8A
 } cbs_payloadId_t;
 
 
@@ -105,9 +109,10 @@ void cbs_onSerialDataReceived(cbs_t *cbs, uint8_t *data, uint8_t dataLength);
 
 void cbs_sendData(cbs_t *cbs, cbs_data_t *data); // send can frame on serial port
 void cbs_sendError(cbs_t *cbs, cbs_error_t error);
+void cbs_sendAcknowledgment(cbs_t *cbs);
 
 void cbs_handleDataFrame(cbs_t *cbs, cbs_data_t *data); // callback on data -> must be implemented in application code
-void cds_handleConfigurationChange(cbs_t *cbs); // callback on Configuration Change -> must be implemented in application code
+bool cds_handleConfigurationChange(cbs_t *cbs); // callback on Configuration Change -> must be implemented in application code
 
 int8_t cbs_dlcToLength(uint8_t dlc);
 

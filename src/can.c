@@ -68,6 +68,11 @@ void can_init(void)
     bus_state = OFF_BUS;
 }
 
+bool can_isEnable(void)
+{
+    if(bus_state == ON_BUS)  return true;
+    else return false;
+}
 
 // Start the CAN peripheral
 void can_enable(void)
@@ -260,6 +265,7 @@ void can_process(void)
 // Receive message from the CAN bus (blocking)
 uint32_t can_rx(FDCAN_RxHeaderTypeDef *rx_msg_header, uint8_t* rx_msg_data)
 {
+    led_green_on();
     return HAL_FDCAN_GetRxMessage(&can_handle, FDCAN_RX_FIFO0, rx_msg_header, rx_msg_data);
 }
 

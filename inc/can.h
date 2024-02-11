@@ -1,6 +1,7 @@
 #ifndef _CAN_H
 #define _CAN_H
 
+#include <stdbool.h>
 #include "CANbeSerial.h"
 
 // Bus state
@@ -28,6 +29,7 @@ typedef struct cantxbuf_
 // Prototypes
 void can_init(void);
 void can_enable(void);
+bool can_isEnable(void);
 void can_disable(void);
 void can_set_bitrate(cbs_baudrate_t baudrate);
 void can_set_data_bitrate(cbs_baudrate_t baudrate);

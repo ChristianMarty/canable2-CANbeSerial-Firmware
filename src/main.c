@@ -17,7 +17,7 @@ void serial_data(const uint8_t *data, uint8_t size)
     cbs_onSerialDataReceived(&cbs, data, size);
 }
 
-void cds_handleConfigurationChange(cbs_t *cbs)
+bool cds_handleConfigurationChange(cbs_t *cbs)
 {
     can_disable();
     can_set_silent(cbs->configuration.bus.bits.silentMode);
@@ -26,10 +26,17 @@ void cds_handleConfigurationChange(cbs_t *cbs)
     can_set_data_bitrate(cbs->configuration.fdBaudrate);
 
     if(cbs->configuration.bus.bits.enabled) can_enable();
+
+    return true; // returning true means there was no error. TODD: add error check
 }
 
 void cbs_handleDataFrame(cbs_t *cbs, cbs_data_t *data)
 {
+    if(!can_isEnable()){
+        cbs_sendError(cbs,cbs_error_notEnabled);
+        return;
+    }
+
     // Set default header. All values overridden below as needed.
     FDCAN_TxHeaderTypeDef frame_header =
     {
@@ -57,9 +64,10 @@ void cbs_handleDataFrame(cbs_t *cbs, cbs_data_t *data)
     frame_header.Identifier = data->identifier;
     frame_header.DataLength = ((uint32_t)data->flags.bits.dlc) << 16; // ST HAL requires this shift
 
-    if(can_tx(&frame_header, &data->data[0]) != HAL_OK)
-    {
+    if(can_tx(&frame_header, &data->data[0]) != HAL_OK){
         cbs_sendError(cbs,cbs_error_can_tx);
+    }else{
+        cbs_sendAcknowledgment(cbs);
     }
 }
 

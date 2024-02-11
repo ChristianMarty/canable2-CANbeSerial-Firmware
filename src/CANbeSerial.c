@@ -87,6 +87,12 @@ void cbs_sendError(cbs_t *cbs, cbs_error_t error)
     _cbs_encode(cbs,&txData[0], sizeof(txData));
 }
 
+void cbs_sendAcknowledgment(cbs_t *cbs)
+{
+    uint8_t txData[] = {cbs_transmitAcknowledgment,0,0}; // Byte 2 and 3 are reserved for CRC
+    _cbs_encode(cbs,&txData[0], sizeof(txData));
+}
+
 void _cbs_encode(cbs_t *cbs, uint8_t *data, uint8_t dataLength)
 {
     uint16_t crc = crc16(data, dataLength-2);
@@ -102,7 +108,7 @@ void _cbs_encode(cbs_t *cbs, uint8_t *data, uint8_t dataLength)
 void _cbs_handleDataFrame(cbs_t *cbs, const uint8_t *data, uint8_t dataLength)
 {
     if(dataLength < 5){ // minimum frame size is 4byte for identifier and 1 flags byte -> 5 bytes
-        cbs_sendError(cbs, cbs_error_txFrameMalformatted);
+        cbs_sendError(cbs, cbs_error_txFrameMalFormatted);
         return;
     }
 
