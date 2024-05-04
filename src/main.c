@@ -49,20 +49,20 @@ void cbs_handleDataFrame(cbs_t *cbs, cbs_data_t *data)
         .MessageMarker = 0, // ?
     };
 
-    if(data->flags.bits.rtr) frame_header.TxFrameType = FDCAN_REMOTE_FRAME;
+    if(data->flags0.remoteTransmissionRequest) frame_header.TxFrameType = FDCAN_REMOTE_FRAME;
     else frame_header.TxFrameType = FDCAN_DATA_FRAME;
 
-    if(data->flags.bits.fd) frame_header.FDFormat = FDCAN_FD_CAN;
+    if(data->flags0.flexibleDataRate) frame_header.FDFormat = FDCAN_FD_CAN;
     else frame_header.FDFormat = FDCAN_CLASSIC_CAN;
 
-    if(data->flags.bits.extended) frame_header.IdType = FDCAN_EXTENDED_ID;
+    if(data->flags0.extended) frame_header.IdType = FDCAN_EXTENDED_ID;
     else frame_header.IdType = FDCAN_STANDARD_ID;
 
     if(cbs->configuration.baudrate == cbs->configuration.fdBaudrate)frame_header.BitRateSwitch = FDCAN_BRS_OFF;
     else frame_header.BitRateSwitch = FDCAN_BRS_ON;
 
     frame_header.Identifier = data->identifier;
-    frame_header.DataLength = ((uint32_t)data->flags.bits.dlc) << 16; // ST HAL requires this shift
+    frame_header.DataLength = ((uint32_t)data->flags0.dataLengthCode) << 16; // ST HAL requires this shift
 
     if(can_tx(&frame_header, &data->data[0]) != HAL_OK){
         cbs_sendError(cbs,cbs_error_can_tx);
@@ -96,10 +96,15 @@ int main(void)
             cbs_data_t data;
             FDCAN_RxHeaderTypeDef rx_msg_header;
 			if (can_rx(&rx_msg_header, &data.data[0]) == HAL_OK) {
+                data.timestamp = rx_msg_header.RxTimestamp;
                 data.identifier = rx_msg_header.Identifier;
-                data.flags.bits.dlc = (rx_msg_header.DataLength >> 16) & 0x0F;  // ST HAL requires this shift
-                data.flags.bits.fd = rx_msg_header.FDFormat;
-                data.flags.bits.extended = rx_msg_header.IdType;
+
+                data.flags0.dataLengthCode = (rx_msg_header.DataLength >> 16) & 0x0F;  // ST HAL requires this shift
+                data.flags0.flexibleDataRate = rx_msg_header.FDFormat;
+                data.flags0.extended = rx_msg_header.IdType;
+
+                data.flags1 = 0;
+
                 cbs_sendData(&cbs, &data);
             }else{
                 cbs_sendError(&cbs,cbs_error_can_rx);

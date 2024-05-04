@@ -21,20 +21,28 @@ void cbs_init(cbs_t *cbs)
 
 void cbs_sendData(cbs_t *cbs, cbs_data_t *data)
 {
-    uint8_t length = cbs_dlcToLength(data->flags.bits.dlc);
-    uint8_t txData[72] = {
+    uint8_t length = cbs_dlcToLength(data->flags0.dataLengthCode);
+    uint8_t txData[80] = {
         cbs_data,
+
+        data->timestamp >> 24,
+        data->timestamp >> 16,
+        data->timestamp >> 8,
+        data->timestamp,
+
         data->identifier >> 24,
         data->identifier >> 16,
         data->identifier >> 8,
         data->identifier,
-        data->flags.byte
+
+        cbs_encodeDataFlags0(data->flags0),
+        data->flags1
     };
 
     for(uint8_t i = 0; i<length; i++) {
-        txData[i + 6] = data->data[i];
+        txData[i + 11] = data->data[i];
     }
-    _cbs_send(cbs,&txData[0], length+8);
+    _cbs_send(cbs,&txData[0], length+13);
 }
 
 void cbs_onSerialDataReceived(cbs_t *cbs, uint8_t *data, uint8_t dataLength)
@@ -107,30 +115,33 @@ void _cbs_encode(cbs_t *cbs, uint8_t *data, uint8_t dataLength)
 
 void _cbs_handleDataFrame(cbs_t *cbs, const uint8_t *data, uint8_t dataLength)
 {
-    if(dataLength < 5){ // minimum frame size is 4byte for identifier and 1 flags byte -> 5 bytes
+    if(dataLength < 10){ // minimum frame size is 4byte for timestamp, 4byte for identifier and 2 flags byte -> 10 bytes
         cbs_sendError(cbs, cbs_error_txFrameMalFormatted);
         return;
     }
 
     cbs_data_t canData;
-    canData.flags.byte = data[4];
+    canData.flags0 = cbs_decodeDataFlags0(data[8]);
+    canData.flags1 = data[9];
 
-    uint8_t length = cbs_dlcToLength(canData.flags.bits.dlc);
-    if(dataLength != length+5){
+    uint8_t length = cbs_dlcToLength(canData.flags0.dataLengthCode);
+    if(dataLength != length+10){
         cbs_sendError(cbs, cbs_error_txFrameDlcLengthMismatch);
         return;
     }
 
+    // ignore timestamp -> first 4 byte
+
     uint32_t identifier;
-    identifier  = ((uint32_t)data[0])<<24;
-    identifier |= ((uint32_t)data[1])<<16;
-    identifier |= ((uint32_t)data[2])<<8;
-    identifier |= ((uint32_t)data[3]);
+    identifier  = ((uint32_t)data[4])<<24;
+    identifier |= ((uint32_t)data[5])<<16;
+    identifier |= ((uint32_t)data[6])<<8;
+    identifier |= ((uint32_t)data[7]);
 
     canData.identifier = identifier;
 
     for(uint8_t i = 0; i<length; i++) {
-        canData.data[i] = data[i+5];
+        canData.data[i] = data[i+10];
     }
 
     cbs_handleDataFrame(cbs, &canData);
@@ -148,7 +159,8 @@ void _cbs_sendConfigurationState(cbs_t *cbs)
         cbs_configurationState,
         cbs->configuration.baudrate,
         cbs->configuration.fdBaudrate,
-        cbs->configuration.bus.byte,
+        cbs->configuration.bus.byte[0],
+        cbs->configuration.bus.byte[1],
         0,0}; // Last two bytes are reserved for CRC
     _cbs_send(cbs,&txData[0], sizeof(txData));
 }
@@ -161,7 +173,8 @@ void _cbs_setConfigurationState(cbs_t *cbs, const uint8_t *data, uint8_t dataLen
     }
     cbs->configuration.baudrate = data[0];
     cbs->configuration.fdBaudrate = data[1];
-    cbs->configuration.bus.byte = data[2];
+    cbs->configuration.bus.byte[0] = data[2];
+    cbs->configuration.bus.byte[1] = data[3];
 
     cds_handleConfigurationChange(cbs);
     _cbs_sendConfigurationState(cbs);
@@ -179,5 +192,40 @@ int8_t cbs_dlcToLength(uint8_t dlc)
     static int8_t dlcToLength[] = {0,1,2,3,4,5,6,7,8,12,16,20,24,32,48,64};
     if(dlc>=sizeof(dlcToLength)) return -1;
     return dlcToLength[dlc];
+}
+
+uint8_t cbs_encodeDataFlags0(cbs_flags0_t flags)
+{
+    uint8_t output = 0;
+
+    if(flags.extended) output |= 0x01;
+    if(flags.remoteTransmissionRequest) output |= 0x02;
+    if(flags.flexibleDataRate) output |= 0x04;
+    if(flags.bitRateSwitching) output |= 0x08;
+
+    output |= ((flags.dataLengthCode<<4)&0xF0);
+
+    return output;
+}
+
+cbs_flags0_t cbs_decodeDataFlags0(uint8_t byte)
+{
+    cbs_flags0_t flags;
+
+    if(byte & 0x01) flags.extended = true;
+    else flags.extended = false;
+
+    if(byte & 0x02) flags.remoteTransmissionRequest = true;
+    else flags.remoteTransmissionRequest = false;
+
+    if(byte & 0x04) flags.flexibleDataRate = true;
+    else flags.flexibleDataRate = false;
+
+    if(byte & 0x08) flags.bitRateSwitching = true;
+    else flags.bitRateSwitching = false;
+
+    flags.dataLengthCode = (byte>>4)&0x0F;
+
+    return flags;
 }
 

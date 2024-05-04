@@ -15,11 +15,13 @@ SOURCES = main.c system.c usbd_conf.c usbd_cdc_if.c usb_device.c usbd_desc.c int
 # Get git version and dirty flag
 GIT_VERSION := $(shell git describe --abbrev=7 --dirty --always --tags)
 
-# Get git remote URL. Use sed to strip off PAT (important!) and https:// 
-GIT_REMOTE := $(shell git config --get remote.origin.url | sed 's/^.*github/github/')
+# Get git remote URL. Use sed to strip off PAT (important!) and https://
+GIT_REMOTE := fuuuukdfg
+#$(shell git config --get remote.origin.url | sed 's/^.*github/github/')
 
 # TARGET: name of the user application
-TARGET = canable2-$(GIT_VERSION)
+TARGET = canable2_CANBeSerial
+#-$(GIT_VERSION)
 
 # BUILD_DIR: directory to place output files in
 BUILD_DIR = build
@@ -62,7 +64,7 @@ AR = arm-none-eabi-ar
 RANLIB = arm-none-eabi-ranlib
 SIZE = arm-none-eabi-size
 OBJCOPY = arm-none-eabi-objcopy
-MKDIR = mkdir -p
+MKDIR = mkdir
 #######################################
 
 # core and CPU type for Cortex M0

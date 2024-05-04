@@ -139,38 +139,38 @@ void can_disable(void)
 }
 
 
-void can_set_data_bitrate(cbs_baudrate_t baudrate)
+void can_set_data_bitrate(cbs_baudRate_t baudrate)
 {
     switch (baudrate){
-        case cbs_baudrate_10k: data_prescaler = 1000; break;
-        case cbs_baudrate_20k: data_prescaler = 500; break;
-        case cbs_baudrate_50k: data_prescaler = 200; break;
-        case cbs_baudrate_100k: data_prescaler = 100; break;
-        case cbs_baudrate_125k: data_prescaler = 80; break;
-        case cbs_baudrate_250k: data_prescaler = 40; break;
-        case cbs_baudrate_500k: data_prescaler = 20; break;
-        case cbs_baudrate_1M: data_prescaler = 10; break;
-        case cbs_baudrate_2M: data_prescaler = 5; break;
-        case cbs_baudrate_5M: data_prescaler = 2; break;
-        case cbs_baudrate_10M: data_prescaler = 1; break;
+        case cbs_baudRate_10k: data_prescaler = 1000; break;
+        case cbs_baudRate_20k: data_prescaler = 500; break;
+        case cbs_baudRate_50k: data_prescaler = 200; break;
+        case cbs_baudRate_100k: data_prescaler = 100; break;
+        case cbs_baudRate_125k: data_prescaler = 80; break;
+        case cbs_baudRate_250k: data_prescaler = 40; break;
+        case cbs_baudRate_500k: data_prescaler = 20; break;
+        case cbs_baudRate_1M: data_prescaler = 10; break;
+        case cbs_baudRate_2M: data_prescaler = 5; break;
+        case cbs_baudRate_5M: data_prescaler = 2; break;
+        case cbs_baudRate_10M: data_prescaler = 1; break;
     }
 }
 
 // Set the bitrate of the CAN peripheral
-void can_set_bitrate(cbs_baudrate_t baudrate)
+void can_set_bitrate(cbs_baudRate_t baudrate)
 {
     switch (baudrate){
-        case cbs_baudrate_10k: prescaler = 1000; break;
-        case cbs_baudrate_20k: prescaler = 500; break;
-        case cbs_baudrate_50k: prescaler = 200; break;
-        case cbs_baudrate_100k: prescaler = 100; break;
-        case cbs_baudrate_125k: prescaler = 80; break;
-        case cbs_baudrate_250k: prescaler = 40; break;
-        case cbs_baudrate_500k: prescaler = 20; break;
-        case cbs_baudrate_1M: prescaler = 10; break;
-        case cbs_baudrate_2M: prescaler = 5; break;
-        case cbs_baudrate_5M: prescaler = 2; break;
-        case cbs_baudrate_10M: prescaler = 1; break;
+        case cbs_baudRate_10k: prescaler = 1000; break;
+        case cbs_baudRate_20k: prescaler = 500; break;
+        case cbs_baudRate_50k: prescaler = 200; break;
+        case cbs_baudRate_100k: prescaler = 100; break;
+        case cbs_baudRate_125k: prescaler = 80; break;
+        case cbs_baudRate_250k: prescaler = 40; break;
+        case cbs_baudRate_500k: prescaler = 20; break;
+        case cbs_baudRate_1M: prescaler = 10; break;
+        case cbs_baudRate_2M: prescaler = 5; break;
+        case cbs_baudRate_5M: prescaler = 2; break;
+        case cbs_baudRate_10M: prescaler = 1; break;
     }
 }
 
